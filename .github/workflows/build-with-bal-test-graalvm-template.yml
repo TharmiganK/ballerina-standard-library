@@ -30,6 +30,10 @@ on:
                 required: false
                 type: string
                 default: ''
+            ballerina_gradle_plugin_version:
+                required: false
+                type: string
+                default: ''
 
 jobs:
     ubuntu-build-with-bal-test-graalvm:
@@ -86,6 +90,12 @@ jobs:
                   echo "NativeImageArgs = ${{ inputs.native_image_options }}" > default_native.properties
                   echo "NATIVE_IMAGE_CONFIG_FILE=$CURRENT_DIR/default_native.properties" >> $GITHUB_ENV
                   echo "NATIVE_IMAGE_CONFIG_FILE: $CURRENT_DIR/default_native.properties"
+                  
+            - name: Set Ballerina gradle plugin version
+              if: ${{  inputs.ballerina_gradle_plugin_version != '' }}
+              run: |
+                  perl -pi -e "s/^\s*ballerinaGradlePluginVersion=.*/ballerinaGradlePluginVersion=${{ inputs.ballerina_gradle_plugin_version }}/" gradle.properties
+                  echo "Ballerina Gradle Plugin Version: ${{ inputs.ballerina_gradle_plugin_version }}"
 
             - name: Build with Gradle
               env:
@@ -167,6 +177,12 @@ jobs:
               run: |
                   "JAVA_TOOL_OPTIONS=${{ inputs.java_tool_options }}" >> $env:GITHUB_ENV
                   Write-Output "JAVA_TOOL_OPTIONS=${{ inputs.java_tool_options }}"
+                  
+            - name: Set Ballerina gradle plugin version
+              if: ${{  inputs.ballerina_gradle_plugin_version != '' }}
+              run: |
+                  perl -pi -e "s/^\s*ballerinaGradlePluginVersion=.*/ballerinaGradlePluginVersion=${{ inputs.ballerina_gradle_plugin_version }}/" gradle.properties
+                  echo "Ballerina Gradle Plugin Version: ${{ inputs.ballerina_gradle_plugin_version }}"
 
             - name: Build with Gradle
               env:
