@@ -233,13 +233,13 @@ function printReport(map<LevelStatus> result) returns error? {
         }
     }
 
-    string title = "GraalVM Check Report for Standard Library";
+    string title = "GraalVM Check Report";
     string tableTitle = "| Level | Module | Status | Link |";
     string tableTitleSeparator = "| ----- | ------ | ------ | ---- |";
     string[] rows = from ReportRecord reportRecord in resultTable
         select
         "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status, reportRecord.link) + " |";
-    string[] summary = ["# " + title, tableTitle, tableTitleSeparator, ...rows];
+    string[] summary = ["## " + title + " :rocket:", tableTitle, tableTitleSeparator, ...rows];
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
 }
