@@ -142,7 +142,7 @@ public function main() returns error? {
     }
 
     while !isComplete(result) {
-        runtime:sleep(180);
+        runtime:sleep(300);
         foreach [string, LevelStatus] [level, levelStatus] in result.entries() {
             if levelStatus.status == COMPLETED {
                 continue;
@@ -168,7 +168,7 @@ public function main() returns error? {
                                         if conclusion !is () {
                                             moduleStatus.conclusion = conclusion;
                                         }
-                                        log:printError("GraalVM check failed", module = module_name, status = status, link = moduleStatus.link);
+                                        log:printError("GraalVM check failed", module = module_name, status = conclusion ?: status, link = moduleStatus.link);
                                     }
                                 }
                             } else {
@@ -214,7 +214,6 @@ type ReportRecord record {|
     string level;
     string module;
     string status;
-    string link;
 |};
 
 function printReport(map<LevelStatus> result) returns error? {
@@ -225,8 +224,7 @@ function printReport(map<LevelStatus> result) returns error? {
                 ReportRecord rec = {
                     level: "Level " + level,
                     module: module,
-                    status: moduleStatus.conclusion,
-                    link: moduleStatus.link
+                    status: string`[${moduleStatus.conclusion}](${moduleStatus.link})`
                 };
                 resultTable.add(rec);
             }
@@ -234,12 +232,12 @@ function printReport(map<LevelStatus> result) returns error? {
     }
 
     string title = "GraalVM Check Report";
-    string tableTitle = "| Level | Module | Status | Link |";
-    string tableTitleSeparator = "| ----- | ------ | ------ | ---- |";
+    string tableTitle = "| Level | Module | Status |";
+    string tableTitleSeparator = "| ----- | ------ | ---- |";
     string[] rows = from ReportRecord reportRecord in resultTable
         select
-        "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status, reportRecord.link) + " |";
-    string[] summary = ["## " + title + " :rocket:", tableTitle, tableTitleSeparator, ...rows];
+        "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status) + " |";
+    string[] summary = ["## " + title + ":rocket:", tableTitle, tableTitleSeparator, ...rows];
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
 }
