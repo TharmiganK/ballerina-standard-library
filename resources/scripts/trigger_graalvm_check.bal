@@ -134,7 +134,7 @@ public function main() returns error? {
                 result[module.level.toString()] = levelStatus;
             } else {
                 LevelStatus levelStatus = result.get(module.level.toString());
-                levelStatus.modules.push({module_name: moduleStatus});
+                levelStatus.modules.push({[module.name]: moduleStatus});
             }
         } on fail error err {
             log:printError("Failed to trigger the GraalVM check", module = module.name, 'error = err);
