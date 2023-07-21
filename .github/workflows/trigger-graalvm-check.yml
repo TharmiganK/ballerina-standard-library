@@ -32,6 +32,8 @@ jobs:
               with:
                 args: 
                    run ./resources/scripts/trigger_graalvm_check.bal -- -CLANG_TAG=${{ inputs.lang_tag }} -CLANG_VERSION=${{ inputs.lang_version }} -CNATIVE_IMAGE_OPTIONS=${{ inputs.native_image_options }}
+              env:
+                GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
 
             - name: Summarize workflow status
               run:
