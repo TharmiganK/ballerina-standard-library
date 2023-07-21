@@ -239,13 +239,3 @@ function printReport(map<LevelStatus> result) returns error? {
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
 }
-
-function repeat(string str, int count) returns string {
-    string result = "";
-    int c = 1;
-    while (c <= count) {
-        result += str;
-        c += 1;
-    }
-    return result;
-}
