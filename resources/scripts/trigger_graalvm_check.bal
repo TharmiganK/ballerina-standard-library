@@ -1,0 +1,251 @@
+import ballerina/http;
+import ballerina/os;
+import ballerina/lang.runtime;
+import ballerina/log;
+import ballerina/io;
+
+string GITHUB_TOKEN = os:getEnv("GITHUB_TOKEN");
+string ORG_NAME = "ballerina-platform";
+string WORKFLOW_FILE_NAME = "build-with-bal-test-graalvm.yml";
+
+configurable string LANG_TAG = "";
+configurable string LANG_VERSION = "";
+configurable string NATIVE_IMAGE_OPTIONS = "";
+
+map<string> headers = {
+    "Authorization": "token " + GITHUB_TOKEN,
+    "Accept": "application/vnd.github.v3+json"
+};
+
+type GraalVMCheckInputs record {|
+    string lang_tag = "";
+    string lang_version = "";
+    string native_image_options = "";
+|};
+
+final http:Client gitHubClient = check new ("https://api.github.com/repos");
+
+function triggerWorkflow(string module_name, string branch, *GraalVMCheckInputs inputs) returns error? {
+    json data = {
+        "ref": branch,
+        "inputs": inputs
+    };
+
+    http:Response res = check gitHubClient->/[ORG_NAME]/[module_name]/actions/workflows/[WORKFLOW_FILE_NAME]/dispatches.post(
+        data,
+        headers
+    );
+
+    if res.statusCode != http:STATUS_NO_CONTENT {
+        return error("workflow trigger failed with status code: " + res.statusCode.toString());
+    }
+}
+
+type GetWorkflowRunResponse record {
+    int total_count;
+    record {int id;}[] workflow_runs;
+};
+
+function getWorkflow(string module_name) returns [int, string]|error {
+    GetWorkflowRunResponse res = check gitHubClient->/[ORG_NAME]/[module_name]/actions/runs(headers);
+    if res.total_count > 0 {
+        return [
+            res.workflow_runs[0].id,
+            string `https://github.com/${ORG_NAME}/${module_name}/actions/runs/${res.workflow_runs[0].id}`
+        ];
+    }
+    return error("failed to get the workflow ID");
+}
+
+type GetWorkflowRunStatusResponse record {
+    STATUS status;
+    CONCLUSION? conclusion;
+};
+
+function getWorkflowRunStatus(string module_name, int workflow_id) returns [STATUS, CONCLUSION?]|error {
+    GetWorkflowRunStatusResponse res = check gitHubClient->/[ORG_NAME]/[module_name]/actions/runs/[workflow_id](headers);
+    return [res.status, res.conclusion];
+}
+
+type Module record {
+    string name;
+    int level;
+    string default_branch;
+};
+
+type Data record {|
+    Module[] modules;
+|};
+
+enum STATUS {
+    PENDING = "pending",
+    IN_PROGRESS = "in_progress",
+    COMPLETED = "completed",
+    QUEUED = "queued"
+};
+
+enum CONCLUSION {
+    SUCCESS = "success",
+    FAILURE = "failure",
+    NEUTRAL = "neutral",
+    CANCELLED = "cancelled",
+    TIMED_OUT = "timed_out",
+    ACTION_REQUIRED = "action_required",
+    NOT_APPLICABLE = "N/A"
+}
+
+type ModuleStatus record {|
+    STATUS status;
+    CONCLUSION conclusion = NOT_APPLICABLE;
+    string link;
+    int workflow_id;
+|};
+
+type LevelStatus record {|
+    STATUS status;
+    map<ModuleStatus>[] modules;
+|};
+
+public function main() returns error? {
+    json jsonData = check io:fileReadJson("./release/resources/stdlib_modules.json");
+    Data data = check jsonData.cloneWithType();
+
+    map<LevelStatus> result = {};
+
+    foreach Module module in data.modules {
+        do {
+            check triggerWorkflow(module.name, module.default_branch,
+                lang_tag = LANG_TAG, lang_version = LANG_VERSION, native_image_options = NATIVE_IMAGE_OPTIONS);
+            runtime:sleep(10);
+            [int, string] [id, link] = check getWorkflow(module.name);
+            log:printInfo("Successfully triggered the GraalVM check", module = module.name, link = link);
+
+            ModuleStatus moduleStatus = {
+                status: IN_PROGRESS,
+                link: link,
+                workflow_id: id
+            };
+
+            if !result.hasKey(module.level.toString()) {
+                LevelStatus levelStatus = {
+                    status: IN_PROGRESS,
+                    modules: [{[module.name] : moduleStatus}]
+                };
+                result[module.level.toString()] = levelStatus;
+            } else {
+                LevelStatus levelStatus = result.get(module.level.toString());
+                levelStatus.modules.push({module_name: moduleStatus});
+            }
+        } on fail error err {
+            log:printError("Failed to trigger the GraalVM check", module = module.name, 'error = err);
+        }
+    }
+
+    while !isComplete(result) {
+        runtime:sleep(180);
+        foreach [string, LevelStatus] [level, levelStatus] in result.entries() {
+            if levelStatus.status == COMPLETED {
+                continue;
+            }
+            if isLevelComplete(levelStatus) {
+                log:printInfo("Level " + level + " is completed");
+                levelStatus.status = COMPLETED;
+                continue;
+            }
+            foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
+                foreach [string, ModuleStatus] [module_name, moduleStatus] in moduleStatusMap.entries() {
+                    if !isModuleComplete(moduleStatus) {
+                        [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
+                        if status == COMPLETED {
+                            moduleStatus.status = COMPLETED;
+                            match conclusion {
+                                SUCCESS => {
+                                    moduleStatus.conclusion = SUCCESS;
+                                    log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
+                                }
+                                _ => {
+                                    if conclusion !is (){
+                                        moduleStatus.conclusion = conclusion;
+                                    }
+                                    log:printError("GraalVM check failed", module = module_name, status = status, link = moduleStatus.link);
+                                }
+                            }
+                        } else {
+                            log:printInfo("GraalVM check is in progress", module = module_name, link = moduleStatus.link);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    check printReport(result);
+}
+
+function isComplete(map<LevelStatus> result) returns boolean {
+    foreach LevelStatus levelStatus in result {
+        if levelStatus.status != COMPLETED {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isLevelComplete(LevelStatus levelStatus) returns boolean {
+    foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
+        foreach [string, ModuleStatus] [_, moduleStatus] in moduleStatusMap.entries() {
+            if !isModuleComplete(moduleStatus) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function isModuleComplete(ModuleStatus moduleStatus) returns boolean {
+    return moduleStatus.status == COMPLETED;
+}
+
+type ReportRecord record {|
+    string level;
+    string module;
+    string status;
+    string link;
+|};
+
+function printReport(map<LevelStatus> result) returns error? {
+    table<ReportRecord> resultTable = table [];
+    foreach [string, LevelStatus] [level, levelStatus] in result.entries() {
+        foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
+            foreach [string, ModuleStatus] [module, moduleStatus] in moduleStatusMap.entries() {
+                ReportRecord rec = {
+                    level: "Level " + level,
+                    module: module,
+                    status: moduleStatus.status,
+                    link: moduleStatus.link
+                };
+                resultTable.add(rec);
+            }
+        }
+    }
+
+    string title = "GraalVM Check Report for Standard Library";
+    string tableTitle = "| Level | Module | Status | Link |";
+    string tableTitleSeparator = "| ----- | ------ | ------ | ---- |";
+    string[] rows = from ReportRecord reportRecord in resultTable
+        select
+        "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status, reportRecord.link) + " |";
+    string[] summary = ["# ", title, tableTitle, tableTitleSeparator, ...rows];
+    string summaryString = string:'join("\n", ...summary);
+    check io:fileWriteString("graalvm_check_summary.md", summaryString);
+}
+
+function repeat(string str, int count) returns string {
+    string result = "";
+    int c = 1;
+    while (c <= count) {
+        result += str;
+        c += 1;
+    }
+    return result;
+}
