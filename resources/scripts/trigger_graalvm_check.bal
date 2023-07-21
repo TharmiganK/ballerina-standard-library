@@ -134,7 +134,7 @@ public function main() returns error? {
                 result[module.level.toString()] = levelStatus;
             } else {
                 LevelStatus levelStatus = result.get(module.level.toString());
-                levelStatus.modules.push({[module.name]: moduleStatus});
+                levelStatus.modules.push({[module.name] : moduleStatus});
             }
         } on fail error err {
             log:printError("Failed to trigger the GraalVM check", module = module.name, 'error = err);
@@ -155,23 +155,27 @@ public function main() returns error? {
             foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
                 foreach [string, ModuleStatus] [module_name, moduleStatus] in moduleStatusMap.entries() {
                     if !isModuleComplete(moduleStatus) {
-                        [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
-                        if status == COMPLETED {
-                            moduleStatus.status = COMPLETED;
-                            match conclusion {
-                                SUCCESS => {
-                                    moduleStatus.conclusion = SUCCESS;
-                                    log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
-                                }
-                                _ => {
-                                    if conclusion !is (){
-                                        moduleStatus.conclusion = conclusion;
+                        do {
+                            [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
+                            if status == COMPLETED {
+                                moduleStatus.status = COMPLETED;
+                                match conclusion {
+                                    SUCCESS => {
+                                        moduleStatus.conclusion = SUCCESS;
+                                        log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
                                     }
-                                    log:printError("GraalVM check failed", module = module_name, status = status, link = moduleStatus.link);
+                                    _ => {
+                                        if conclusion !is () {
+                                            moduleStatus.conclusion = conclusion;
+                                        }
+                                        log:printError("GraalVM check failed", module = module_name, status = status, link = moduleStatus.link);
+                                    }
                                 }
+                            } else {
+                                log:printInfo("GraalVM check is in progress", module = module_name, link = moduleStatus.link);
                             }
-                        } else {
-                            log:printInfo("GraalVM check is in progress", module = module_name, link = moduleStatus.link);
+                        } on fail error err {
+                            log:printError("Failed to get the GraalVM check status", module = module_name, 'error = err);
                         }
                     }
                 }
