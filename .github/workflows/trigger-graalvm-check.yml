@@ -35,6 +35,16 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
 
-            - name: Summarize workflow status
-              run:
-                cat ./graalvm_check_summary.md >> $GITHUB_STEP_SUMMARY
+            - name: Set GraalVM check summary
+              uses: actions/github-script@v4
+              with:
+                github-token: ${{ secrets.MY_GITHUB_PAT }}
+                script: |
+                    const fs = require('fs');
+                    const summary = fs.readFileSync('graalvm_check_summary.md', 'utf8');
+                    github.workflow.updateJob({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      job_id: ${{ github.job }}.id,
+                      summary: summary,
+                    });
