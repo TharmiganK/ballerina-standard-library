@@ -221,7 +221,7 @@ function printReport(map<LevelStatus> result) returns error? {
                 ReportRecord rec = {
                     level: "Level " + level,
                     module: module,
-                    status: moduleStatus.status,
+                    status: moduleStatus.conclusion,
                     link: moduleStatus.link
                 };
                 resultTable.add(rec);
@@ -235,7 +235,7 @@ function printReport(map<LevelStatus> result) returns error? {
     string[] rows = from ReportRecord reportRecord in resultTable
         select
         "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status, reportRecord.link) + " |";
-    string[] summary = ["# ", title, tableTitle, tableTitleSeparator, ...rows];
+    string[] summary = ["# " + title, tableTitle, tableTitleSeparator, ...rows];
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
 }
