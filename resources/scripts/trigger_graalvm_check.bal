@@ -18,21 +18,19 @@ map<string> headers = {
 };
 
 type GraalVMCheckInputs record {|
-    string lang_tag = "";
-    string lang_version = "";
-    string native_image_options = "";
+    string lang_tag;
+    string lang_version;
+    string native_image_options;
 |};
 
 final http:Client gitHubClient = check new ("https://api.github.com/repos");
 
 function triggerWorkflow(string module_name, string branch, *GraalVMCheckInputs inputs) returns error? {
-    json data = {
-        "ref": branch,
-        "inputs": inputs
-    };
-
     http:Response res = check gitHubClient->/[ORG_NAME]/[module_name]/actions/workflows/[WORKFLOW_FILE_NAME]/dispatches.post(
-        data,
+        {
+            "ref": branch,
+            "inputs": inputs
+        },
         headers
     );
 
@@ -110,6 +108,12 @@ public function main() returns error? {
     json jsonData = check io:fileReadJson("./release/resources/stdlib_modules.json");
     Data data = check jsonData.cloneWithType();
 
+    map<LevelStatus> result = triggerGraalVMChecks(data);
+    checkStatus(result);
+    check createReport(result);
+}
+
+function triggerGraalVMChecks(Data data) returns map<LevelStatus> {
     map<LevelStatus> result = {};
 
     foreach Module module in data.modules {
@@ -141,6 +145,10 @@ public function main() returns error? {
         }
     }
 
+    return result;
+}
+
+function checkStatus(map<LevelStatus> result) {
     while !isComplete(result) {
         runtime:sleep(300);
         foreach [string, LevelStatus] [level, levelStatus] in result.entries() {
@@ -154,36 +162,38 @@ public function main() returns error? {
             }
             foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
                 foreach [string, ModuleStatus] [module_name, moduleStatus] in moduleStatusMap.entries() {
-                    if !isModuleComplete(moduleStatus) {
-                        do {
-                            [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
-                            if status == COMPLETED {
-                                moduleStatus.status = COMPLETED;
-                                match conclusion {
-                                    SUCCESS => {
-                                        moduleStatus.conclusion = SUCCESS;
-                                        log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
-                                    }
-                                    _ => {
-                                        if conclusion !is () {
-                                            moduleStatus.conclusion = conclusion;
-                                        }
-                                        log:printError("GraalVM check failed", module = module_name, status = conclusion ?: status, link = moduleStatus.link);
-                                    }
-                                }
-                            } else {
-                                log:printInfo("GraalVM check is in progress", module = module_name, link = moduleStatus.link);
-                            }
-                        } on fail error err {
-                            log:printError("Failed to get the GraalVM check status", module = module_name, 'error = err);
-                        }
+                    if moduleStatus.status != COMPLETED {
+                        checkModuleStatus(moduleStatus, module_name);
                     }
                 }
             }
         }
     }
+}
 
-    check printReport(result);
+function checkModuleStatus(ModuleStatus moduleStatus, string module_name) {
+    do {
+        [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
+        if status == COMPLETED {
+            moduleStatus.status = COMPLETED;
+            match conclusion {
+                SUCCESS => {
+                    moduleStatus.conclusion = SUCCESS;
+                    log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
+                }
+                _ => {
+                    if conclusion !is () {
+                        moduleStatus.conclusion = conclusion;
+                    }
+                    log:printError("GraalVM check failed", module = module_name, status = conclusion ?: status, link = moduleStatus.link);
+                }
+            }
+        } else {
+            log:printInfo("GraalVM check is in progress", module = module_name, link = moduleStatus.link);
+        }
+    } on fail error err {
+        log:printError("Failed to get the GraalVM check status", module = module_name, 'error = err);
+    }
 }
 
 function isComplete(map<LevelStatus> result) returns boolean {
@@ -198,16 +208,12 @@ function isComplete(map<LevelStatus> result) returns boolean {
 function isLevelComplete(LevelStatus levelStatus) returns boolean {
     foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
         foreach [string, ModuleStatus] [_, moduleStatus] in moduleStatusMap.entries() {
-            if !isModuleComplete(moduleStatus) {
+            if moduleStatus.status != COMPLETED {
                 return false;
             }
         }
     }
     return true;
-}
-
-function isModuleComplete(ModuleStatus moduleStatus) returns boolean {
-    return moduleStatus.status == COMPLETED;
 }
 
 type ReportRecord record {|
@@ -216,7 +222,7 @@ type ReportRecord record {|
     string status;
 |};
 
-function printReport(map<LevelStatus> result) returns error? {
+function createReport(map<LevelStatus> result) returns error? {
     table<ReportRecord> resultTable = table [];
     foreach [string, LevelStatus] [level, levelStatus] in result.entries() {
         foreach map<ModuleStatus> moduleStatusMap in levelStatus.modules {
@@ -224,7 +230,7 @@ function printReport(map<LevelStatus> result) returns error? {
                 ReportRecord rec = {
                     level: "Level " + level,
                     module: module,
-                    status: string`[${moduleStatus.conclusion}](${moduleStatus.link})`
+                    status: string `[${moduleStatus.conclusion}](${moduleStatus.link})`
                 };
                 resultTable.add(rec);
             }
@@ -237,7 +243,7 @@ function printReport(map<LevelStatus> result) returns error? {
     string[] rows = from ReportRecord reportRecord in resultTable
         select
         "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status) + " |";
-    string[] summary = ["## " + title + ":rocket:", tableTitle, tableTitleSeparator, ...rows];
+    string[] summary = ["## " + title + " :rocket:", tableTitle, tableTitleSeparator, ...rows];
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
 }
