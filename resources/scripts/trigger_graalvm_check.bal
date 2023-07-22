@@ -5,12 +5,12 @@ import ballerina/log;
 import ballerina/io;
 
 string GITHUB_TOKEN = os:getEnv("GITHUB_TOKEN");
+string LANG_TAG = os:getEnv("LANG_TAG");
+string LANG_VERSION = os:getEnv("LANG_VERSION");
+string NATIVE_IMAGE_OPTIONS = os:getEnv("NATIVE_IMAGE_OPTIONS");
+
 string ORG_NAME = "ballerina-platform";
 string WORKFLOW_FILE_NAME = "build-with-bal-test-graalvm.yml";
-
-configurable string LANG_TAG = "";
-configurable string LANG_VERSION = "";
-configurable string NATIVE_IMAGE_OPTIONS = "";
 
 map<string> headers = {
     "Authorization": "token " + GITHUB_TOKEN,
