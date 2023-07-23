@@ -11,6 +11,7 @@ string NATIVE_IMAGE_OPTIONS = os:getEnv("NATIVE_IMAGE_OPTIONS");
 
 string ORG_NAME = "ballerina-platform";
 string WORKFLOW_FILE_NAME = "build-with-bal-test-graalvm.yml";
+string STDLIB_MODULES = "./release/resources/stdlib_modules.json";
 
 map<string> headers = {
     "Authorization": "token " + GITHUB_TOKEN,
@@ -55,14 +56,26 @@ function getWorkflow(string module_name) returns [int, string]|error {
     return error("failed to get the workflow ID");
 }
 
-type GetWorkflowRunStatusResponse record {
+type JobStatus record {
+    STATUS status;
+    CONCLUSION conclusion;
+    string link;
+};
+
+type WorkflowRunStatus record {
     STATUS status;
     CONCLUSION? conclusion;
 };
 
-function getWorkflowRunStatus(string module_name, int workflow_id) returns [STATUS, CONCLUSION?]|error {
-    GetWorkflowRunStatusResponse res = check gitHubClient->/[ORG_NAME]/[module_name]/actions/runs/[workflow_id](headers);
-    return [res.status, res.conclusion];
+type JobRunStatus record {
+    int id;
+    string name;
+    STATUS status;
+    CONCLUSION? conclusion;
+};
+
+function getWorkflowRunStatus(string module_name, int workflow_id) returns WorkflowRunStatus|error {
+    return check gitHubClient->/[ORG_NAME]/[module_name]/actions/runs/[workflow_id](headers);
 }
 
 type Module record {
@@ -94,9 +107,10 @@ enum CONCLUSION {
 
 type ModuleStatus record {|
     STATUS status;
-    CONCLUSION conclusion = NOT_APPLICABLE;
+    CONCLUSION conclusion;
     string link;
     int workflow_id;
+    record {| JobStatus ubuntu?; JobStatus windows?;|} jobs;
 |};
 
 type LevelStatus record {|
@@ -105,7 +119,7 @@ type LevelStatus record {|
 |};
 
 public function main() returns error? {
-    json jsonData = check io:fileReadJson("./release/resources/stdlib_modules.json");
+    json jsonData = check io:fileReadJson(STDLIB_MODULES);
     Data data = check jsonData.cloneWithType();
 
     map<LevelStatus> result = triggerGraalVMChecks(data);
@@ -127,7 +141,9 @@ function triggerGraalVMChecks(Data data) returns map<LevelStatus> {
             ModuleStatus moduleStatus = {
                 status: IN_PROGRESS,
                 link: link,
-                workflow_id: id
+                workflow_id: id,
+                conclusion: NOT_APPLICABLE,
+                jobs: {}
             };
 
             if !result.hasKey(module.level.toString()) {
@@ -173,19 +189,30 @@ function checkStatus(map<LevelStatus> result) {
 
 function checkModuleStatus(ModuleStatus moduleStatus, string module_name) {
     do {
-        [STATUS, CONCLUSION?] [status, conclusion] = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
-        if status == COMPLETED {
+        WorkflowRunStatus workflowRunStatus = check getWorkflowRunStatus(module_name, moduleStatus.workflow_id);
+        if workflowRunStatus.status == COMPLETED {
             moduleStatus.status = COMPLETED;
-            match conclusion {
+            JobRunStatus[] jobRunStatuses = check getWorkflowJobStatuses(module_name, moduleStatus.workflow_id);
+            foreach JobRunStatus jobRunStatus in jobRunStatuses {
+                JobStatus jobStatus = {
+                    status: jobRunStatus.status,
+                    conclusion: jobRunStatus.conclusion ?: NOT_APPLICABLE,
+                    link: string `https://github.com/${ORG_NAME}/${module_name}/actions/runs/${moduleStatus.workflow_id}/jobs/${jobRunStatus.id}`
+                };
+                if jobRunStatus.name.includes("Ubuntu") {
+                    moduleStatus.jobs.ubuntu = jobStatus;
+                } else if jobRunStatus.name.includes("Windows") {
+                    moduleStatus.jobs.windows = jobStatus;
+                }
+            }
+            match workflowRunStatus.conclusion {
                 SUCCESS => {
                     moduleStatus.conclusion = SUCCESS;
                     log:printInfo("GraalVM check passed", module = module_name, link = moduleStatus.link);
                 }
                 _ => {
-                    if conclusion !is () {
-                        moduleStatus.conclusion = conclusion;
-                    }
-                    log:printError("GraalVM check failed", module = module_name, status = conclusion ?: status, link = moduleStatus.link);
+                    moduleStatus.conclusion = workflowRunStatus.conclusion ?: NOT_APPLICABLE;
+                    log:printError("GraalVM check failed", module = module_name, status = workflowRunStatus.conclusion ?: workflowRunStatus.status, link = moduleStatus.link);
                 }
             }
         } else {
@@ -194,6 +221,11 @@ function checkModuleStatus(ModuleStatus moduleStatus, string module_name) {
     } on fail error err {
         log:printError("Failed to get the GraalVM check status", module = module_name, 'error = err);
     }
+}
+
+function getWorkflowJobStatuses(string module_name, int workflow_id) returns JobRunStatus[]|error {
+    record{JobRunStatus[] jobs;} jobRunStatuses = check gitHubClient->/[ORG_NAME]/[module_name]/actions/runs/[workflow_id]/jobs(headers);
+    return jobRunStatuses.jobs;
 }
 
 function isComplete(map<LevelStatus> result) returns boolean {
@@ -219,7 +251,8 @@ function isLevelComplete(LevelStatus levelStatus) returns boolean {
 type ReportRecord record {|
     string level;
     string module;
-    string status;
+    string ubuntuStatus = NOT_APPLICABLE;
+    string windowsStatus = NOT_APPLICABLE;
 |};
 
 function createReport(map<LevelStatus> result) returns error? {
@@ -230,7 +263,8 @@ function createReport(map<LevelStatus> result) returns error? {
                 ReportRecord rec = {
                     level: "Level " + level,
                     module: module,
-                    status: string `[${moduleStatus.conclusion}](${moduleStatus.link})`
+                    ubuntuStatus: string `[${moduleStatus.jobs.ubuntu?.conclusion ?: NOT_APPLICABLE}](${moduleStatus.jobs?.ubuntu?.link ?: moduleStatus.link})`,
+                    windowsStatus: string `[${moduleStatus.jobs.windows?.conclusion ?: NOT_APPLICABLE}](${moduleStatus.jobs?.windows?.link ?: moduleStatus.link})`
                 };
                 resultTable.add(rec);
             }
@@ -238,11 +272,11 @@ function createReport(map<LevelStatus> result) returns error? {
     }
 
     string title = "GraalVM Check Report";
-    string tableTitle = "| Level | Module | Status |";
-    string tableTitleSeparator = "| ----- | ------ | ---- |";
+    string tableTitle = "| Level | Module | Ubuntu Build | Windows Build |";
+    string tableTitleSeparator = "| ----- | ------ | ---- | ---- |";
     string[] rows = from ReportRecord reportRecord in resultTable
         select
-        "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.status) + " |";
+        "| " + string:'join(" | ", reportRecord.level, reportRecord.module, reportRecord.ubuntuStatus, reportRecord.windowsStatus) + " |";
     string[] summary = ["## " + title + " :rocket:", tableTitle, tableTitleSeparator, ...rows];
     string summaryString = string:'join("\n", ...summary);
     check io:fileWriteString("graalvm_check_summary.md", summaryString);
