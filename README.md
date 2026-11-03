@@ -12,6 +12,7 @@ The skills never create GitHub issues. They present findings to the developer in
 | `bal-lib-spec-review` | Check a specification against the guide, and review the behaviour it specifies as a design, raising questions. Does not read the implementation. | Available |
 | `bal-lib-spec-verify` | Check every claim of a specification against the implementation, by reading and running it, and find behaviour the specification does not cover. Reports bugs, corrections and questions. | Available |
 | `bal-lib-spec-gap-analysis` | Compare the library with the standards it implements and with established libraries in other languages. Reports missing capabilities with evidence and a demand score, and questions the reasons for restrictions. | Available |
+| `bal-lib-spec-pipeline` | Run author, review, verify and gap analysis in order, each in its own subagent; apply the behaviour-neutral corrections; consolidate every finding into one report and one round of decisions. | Available |
 | `bal-lib-agent-setup` | Prepare a library repository for agents. | Planned |
 
 Shared material lives in [`references/`](references): where the guide is, the finding kinds and how the specification treats each, and how claims and examples are verified by running them.

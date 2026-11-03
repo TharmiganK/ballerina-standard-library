@@ -14,6 +14,7 @@
     "./skills/bal-lib-spec-author",
     "./skills/bal-lib-spec-review",
     "./skills/bal-lib-spec-verify",
-    "./skills/bal-lib-spec-gap-analysis"
+    "./skills/bal-lib-spec-gap-analysis",
+    "./skills/bal-lib-spec-pipeline"
   ]
 }
