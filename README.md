@@ -110,6 +110,10 @@ The skills write only to `docs/spec/spec.md`, `.spec-work/` and scratch director
 - A run is a sample: a second run, or a different comparison set, can find what the first one missed.
 - Delete `.spec-work/` to start over.
 
+## Example
+
+[`examples/ballerina-url.md`](examples/ballerina-url.md) summarises a full pipeline run on `ballerina/url`: the stages and their timings, the findings, and the resulting specification pull request.
+
 ## Feedback
 
 Report problems and suggestions to the library team, with the skill name and the part of the report that went wrong.
