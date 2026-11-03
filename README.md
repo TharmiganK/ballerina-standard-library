@@ -18,7 +18,13 @@ Shared material lives in [`references/`](references): where the guide is, the fi
 
 ## Install
 
-You need [Claude Code](https://docs.claude.com/en/docs/claude-code), the Ballerina distribution your library targets (`bal`), and the GitHub CLI (`gh`, logged in).
+You need:
+
+- [Claude Code](https://docs.claude.com/en/docs/claude-code).
+- The Ballerina distribution your library targets (`bal`).
+- A JDK on your `PATH` (the version your library builds with, usually 21): verification runs the programs it builds with `java -jar`.
+- The GitHub CLI (`gh`), logged in with `gh auth login`: the skills fetch the specification guide and search existing issues with it.
+- Optional, used only when a check needs them: `python3` and `nc` for driving network libraries, `javap` (part of the JDK) for inspecting runtime conversions, and Docker for libraries that need a local server.
 
 1. Clone the `bal-lib-skills` branch to a permanent location:
 
@@ -38,6 +44,12 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code), the Balleri
    alias claude-bal='claude --plugin-dir ~/bal-lib-skills'
    ```
 
+   On Windows, add a function to your PowerShell profile (`notepad $PROFILE`) instead:
+
+   ```powershell
+   function claude-bal { claude --plugin-dir "$HOME\bal-lib-skills" @args }
+   ```
+
 3. To get later changes, pull the branch: `git -C ~/bal-lib-skills pull`.
 
 Keep the clone as it is: the skills read the shared `references/` directory next to them, so copying individual skill folders elsewhere breaks them.
@@ -54,6 +66,20 @@ What does this library lack compared with other libraries?
 ```
 
 or invoke a skill by name, for example `/bal-lib-skills:bal-lib-spec-pipeline`.
+
+### Permissions
+
+The skills run many shell commands (`bal build`, `java -jar`, `curl`, `gh`, `git`), and the pipeline starts subagents. In the default permission mode, Claude Code asks you to approve each one, which makes a long run tedious. Either approve a command for the rest of the session when it is first asked, or allow the common ones up front in the library repository's `.claude/settings.local.json`, which is not committed:
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(bal:*)", "Bash(java:*)", "Bash(gh:*)", "Bash(git:*)", "Bash(curl:*)"]
+  }
+}
+```
+
+The skills write only to `docs/spec/spec.md`, `.spec-work/` and scratch directories, and never commit, push or file anything.
 
 ### Interactive or report mode
 
