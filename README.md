@@ -10,7 +10,7 @@ The skills never create GitHub issues. They present findings to the developer in
 |---|---|---|
 | `bal-lib-spec-author` | Write a specification from the implementation, or rewrite an existing one. Reports bugs and open questions found on the way. | Available |
 | `bal-lib-spec-review` | Check a specification against the guide, and review the behaviour it specifies as a design, raising questions. Does not read the implementation. | Available |
-| `bal-lib-spec-verify` | Check a specification against the implementation, and report bugs and grey areas. | Planned |
+| `bal-lib-spec-verify` | Check every claim of a specification against the implementation, by reading and running it, and find behaviour the specification does not cover. Reports bugs, corrections and questions. | Available |
 | `bal-lib-spec-gap-analysis` | Compare the library with the standards it implements and with established libraries, and report improvements and restrictions to question. | Planned |
 | `bal-lib-agent-setup` | Prepare a library repository for agents. | Planned |
 

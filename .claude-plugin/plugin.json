@@ -12,6 +12,7 @@
   ],
   "skills": [
     "./skills/bal-lib-spec-author",
-    "./skills/bal-lib-spec-review"
+    "./skills/bal-lib-spec-review",
+    "./skills/bal-lib-spec-verify"
   ]
 }
