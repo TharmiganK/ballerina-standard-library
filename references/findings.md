@@ -24,14 +24,16 @@ Every finding carries its evidence, and the evidence states how it was establish
 
 Verify every bug, and every finding that involves runtime behaviour, when the toolchain allows it. Reading code gets precedence, conversions, shared state and framing wrong often enough that a read-only bug is not reported as a bug without saying so.
 
-Before presenting findings, check each one against the existing issues with a read-only search of `ballerina-platform/ballerina-library`, the tracker of most libraries, across all its issues (issues filed by people often lack the module label), and of the library's own repository when it has issues enabled. Search with two or three sets of key terms per finding:
+Before presenting findings, check each one against the existing issues with a read-only search of `ballerina-platform/ballerina-library`, the tracker of most libraries, across all its issues (issues filed by people often lack the module label), and of the library's own repository when it has issues enabled. First list every issue with the module's label, open and closed, and read their titles; then search two or three sets of key terms per finding, without the module name, since multi-term searches that include it rarely match:
 
 ```sh
-gh search issues '<terms>' --repo ballerina-platform/ballerina-library --state all --json number,title,state,url
+gh issue list --repo ballerina-platform/ballerina-library --label module/<name> --state all --limit 500 --json number,title,state
+gh search issues '<terms>' --repo ballerina-platform/ballerina-library --json number,title,state,url,commentsCount
+gh api 'repos/ballerina-platform/ballerina-library/issues/<n>' --jq '.reactions.total_count'   # reactions
 gh api repos/ballerina-platform/<module-repo> --jq .has_issues   # search the module repository only when true
 ```
 
-`gh search issues` takes `--repo`; the short `-R` form returns no results. Mark a finding that is already reported with the issue link instead of presenting it as new.
+`gh search issues` takes `--repo`, not `-R`, and searches open and closed issues when `--state` is omitted. Mark a finding that is already reported with the issue link instead of presenting it as new.
 
 When a concern is already covered by an earlier finding in `.spec-work/findings.md`, cite that finding instead of recording a new one; record a new finding only for a different aspect.
 
