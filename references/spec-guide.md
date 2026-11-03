@@ -1,10 +1,21 @@
 # Library specification guide
 
-The library specification guide is the single source of truth for what a Ballerina library specification contains and how it is written: document roles, normative language, document structure, the feature template, writing rules, and the change process.
+The library specification guide is the single source of truth for what a Ballerina library specification contains and how it is written: document roles, normative language, document structure, the feature template, writing rules, and the change process. When this plugin and the guide disagree, the guide wins.
 
-- Released: https://github.com/ballerina-platform/ballerina-library/blob/main/docs/library-specification-guide.md
-- Until the proposal is merged: https://github.com/ballerina-platform/ballerina-library/blob/spec-writing-guide/docs/library-specification-guide.md (ballerina-platform/ballerina-library#9460)
+Read the whole guide before writing or reviewing a specification. Until the proposal is merged, it is framed as a proposal; its rules are in the sections under "Description".
 
-Read the whole guide before writing or reviewing a specification, and apply it as written. When this plugin and the guide disagree, the guide wins.
+```sh
+# Released (after ballerina-platform/ballerina-library#9460 is merged)
+gh api 'repos/ballerina-platform/ballerina-library/contents/docs/library-specification-guide.md' --jq .content | base64 -d
+# Until then, from the proposal branch
+gh api 'repos/ballerina-platform/ballerina-library/contents/docs/library-specification-guide.md?ref=spec-writing-guide' --jq .content | base64 -d
+```
 
-The reference migration is the HTTP library specification. Until ballerina-platform/module-ballerina-http#2768 is merged, read it at https://github.com/TharmiganK/module-ballerina-http/blob/spec-refactor/docs/spec/spec.md; afterwards, at https://github.com/ballerina-platform/module-ballerina-http/blob/master/docs/spec/spec.md. Consult it for the depth expected per feature, the example density, and how rules, examples, errors and diagnostics read in practice.
+The reference migration is the HTTP library specification. Consult it for the depth expected per feature, the example density, and how rules, examples, errors and diagnostics read in practice; its content is HTTP-specific and is not a template for other libraries.
+
+```sh
+# Until ballerina-platform/module-ballerina-http#2768 is merged
+gh api 'repos/TharmiganK/module-ballerina-http/contents/docs/spec/spec.md?ref=spec-refactor' --jq .content | base64 -d
+# Afterwards
+gh api 'repos/ballerina-platform/module-ballerina-http/contents/docs/spec/spec.md' --jq .content | base64 -d
+```
