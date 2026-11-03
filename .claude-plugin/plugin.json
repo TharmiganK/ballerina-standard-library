@@ -1,0 +1,16 @@
+{
+  "name": "bal-lib-skills",
+  "version": "0.1.0",
+  "description": "Skills for Ballerina library developers: write, review and verify library specifications against the implementation, and prepare library repositories for agents.",
+  "author": {
+    "name": "Ballerina Library Team"
+  },
+  "keywords": [
+    "ballerina",
+    "specification",
+    "library"
+  ],
+  "skills": [
+    "./skills/bal-lib-spec-author"
+  ]
+}
