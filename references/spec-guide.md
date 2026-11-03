@@ -2,7 +2,7 @@
 
 The library specification guide is the single source of truth for what a Ballerina library specification contains and how it is written: document roles, normative language, document structure, the feature template, writing rules, and the change process. When this plugin and the guide disagree, the guide wins.
 
-Read the whole guide before writing or reviewing a specification. Until the proposal is merged, it is framed as a proposal; its rules are in the sections under "Description".
+Read the whole guide before writing or reviewing a specification. When `.spec-work/guide.md` exists, a pipeline already fetched it: read that copy instead of fetching again. Until the proposal is merged, it is framed as a proposal; its rules are in the sections under "Description".
 
 Try the released path first; while the proposal is unmerged it returns 404 (`base64: invalid input`), so fall back to the proposal branch:
 

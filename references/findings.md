@@ -90,7 +90,7 @@ When running as a subagent or without a developer, do not stop for answers. Appl
 <what was produced, counts per kind, and what blocks a release-quality result>
 
 ## Specification
-<path; counts of feature sections, numbered rules, table rows and examples; for a rewrite, the old statements that were corrected>
+<path; counts of feature sections, numbered rules (nested steps counted separately), table data rows, examples, and _unspecified_ or _implementation-defined_ markers; for a rewrite, the old statements that were corrected>
 
 ## Questions for the developer
 <findings of kind question, highest impact first>
@@ -114,9 +114,10 @@ Skills omit the sections that do not apply to them, and may add their own.
 
 Keep working state in `.spec-work/` at the repository root so that an interrupted run can resume:
 
-- `inventory.md` starts with one line per run, in this form: `- <date> <skill> <mode>: version <Ballerina.toml version>, commit <sha>, uncommitted changes <yes|no>, verified against <released version>`.
+- `inventory.md` starts with one line per run, in this form: `- <date> <skill or pipeline stage> <new|rewrite|-> <interactive|report>: version <Ballerina.toml version>, commit <sha>, uncommitted changes <yes|no>, verified against <released version>`. The third field is the specification mode of the author skill, `-` for the others.
 - `findings.md`: every finding, numbered `F1`, `F2`, … in discovery order, never renumbered.
-- `decisions.md`: each answer as `F<n>: <decision> — <developer's words>`, with the date; in report mode, `F<n>: default — <policy row applied>`.
+- `decisions.md`: each answer as `F<n>: <decision> — <developer's words>`, with the date; in report mode, `F<n>: default — <policy row applied>`, followed by `applied` once the specification text reflects it.
+- `issues.md`: the issues listed for the module's label and the searches already run, with their results, so that a later run searches only for its new findings.
 - Skill-specific files, named in each skill.
 
 Add `.spec-work/` to `.git/info/exclude`, which ignores it locally without changing the repository. On resume, read `findings.md` and `decisions.md` first, and do not ask a recorded question again. Resume when the earlier runs recorded the same commit, even when the working tree has uncommitted changes such as a specification being written, or when the commits differ only by changes outside the library's code. Otherwise ask the developer whether to resume or start over; in report mode, move it to `.spec-work-<old commit>/` and start over.
