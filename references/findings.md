@@ -9,7 +9,7 @@ Shared by every `bal-lib-*` skill. A **finding** is anything the developer must 
 | **bug** | The implementation contradicts the intended behaviour: the behaviour is clearly wrong, it violates a MUST of a standard the library implements, it contradicts its own API docs or tests, or it is inconsistent with a sibling feature. | Code paths, runtime checks, standards |
 | **question** | The behaviour is plausible but nobody visibly decided it, and a reasonable user could expect otherwise. The developer decides whether it is intended. | Grey areas, surprising defaults, undocumented edge cases |
 | **improvement** | The behaviour is intended and correct, but the library lacks something users expect, or a standard recommends (SHOULD) something it does not do. | Standards, peer libraries |
-| **doc** | The API docs, README, examples or an existing specification state something the implementation does not do. The implementation is right. | Doc comments, old specification text, README examples |
+| **doc** | The specification, API docs, README or examples are wrong or incomplete: they state something the implementation does not do, or omit behaviour users rely on. The implementation is right. | Doc comments, old specification text, README examples, behaviour the specification does not cover |
 
 When unsure between **bug** and **question**, choose **question**. A wrong bug wastes a fix; a wrong question costs one answer.
 
@@ -20,10 +20,13 @@ Every finding carries its evidence, and the evidence states how it was establish
 - **verified**: observed by running code against the released library version (see `verification.md`), with the exact input and observed output.
 - **read**: derived from reading code only. State the code location (prefer the function or method over a bare line number, which goes stale) and the reasoning. A read finding is a hypothesis.
 - **verified symptom, read cause**: the behaviour was observed, but its cause was not isolated. Say which part is which.
+- **spec**: derived from the specification text alone, without reading or running code. Used by review skills; a spec finding concerns the contract, not the implementation.
 
 Verify every bug, and every finding that involves runtime behaviour, when the toolchain allows it. Reading code gets precedence, conversions, shared state and framing wrong often enough that a read-only bug is not reported as a bug without saying so.
 
-Before presenting findings, check each one against the existing issues with a read-only search: the library's repository, and `ballerina-platform/ballerina-library` across all its issues (issues filed by people often lack the module label). Mark a finding that is already reported with the issue link instead of presenting it as new.
+Before presenting findings, check each one against the existing issues with a read-only search of `ballerina-platform/ballerina-library`, the tracker of most libraries, across all its issues (issues filed by people often lack the module label), and of the library's own repository when it has issues enabled. Mark a finding that is already reported with the issue link instead of presenting it as new.
+
+When a concern is already covered by an earlier finding in `.spec-work/findings.md`, cite that finding instead of recording a new one; record a new finding only for a different aspect.
 
 Record a finding with these fields:
 
@@ -31,12 +34,12 @@ Record a finding with these fields:
 ### F<n>. <one-line statement of the behaviour, not of the fix>
 - Kind: bug | question | improvement | doc
 - Area: <feature section of the specification>
-- Evidence: verified | read | verified symptom, read cause — <code locations, observed vs expected>
+- Evidence: verified | read | verified symptom, read cause | spec — <code locations or specification lines, observed vs expected>
 - Reproducer: <scratch package path, or the snippet>, or none
 - Known: <existing issue link>, or none
 - Impact: <who is affected and how, one or two sentences>
 - Options: <for questions: two or three concrete choices, recommended one first>
-- Spec handling: <how the specification text treats it, per the policy below>
+- Spec handling: <how the specification text treats it, per the policy below; for a skill that does not write the specification, the proposed handling, marked not applied>
 ```
 
 ## How the specification treats a finding
@@ -102,9 +105,11 @@ Skills omit the sections that do not apply to them, and may add their own.
 
 Keep working state in `.spec-work/` at the repository root so that an interrupted run can resume:
 
-- `inventory.md` starts with the library name, version, commit and mode of the run.
+- `inventory.md` starts with one line per run: the skill, the library, the version in `ballerina/Ballerina.toml`, the commit, whether the working tree has uncommitted changes, the released version the run verified against, and the mode.
 - `findings.md`: every finding, numbered `F1`, `F2`, … in discovery order, never renumbered.
 - `decisions.md`: each answer as `F<n>: <decision> — <developer's words>`, with the date; in report mode, `F<n>: default — <policy row applied>`.
 - Skill-specific files, named in each skill.
 
-Add `.spec-work/` to `.git/info/exclude`, which ignores it locally without changing the repository. On resume, read `findings.md` and `decisions.md` first, and do not ask a recorded question again. When `.spec-work/` records a different version or commit than the working tree, ask the developer whether to resume or start over; in report mode, move it to `.spec-work-<old commit>/` and start over.
+Add `.spec-work/` to `.git/info/exclude`, which ignores it locally without changing the repository. On resume, read `findings.md` and `decisions.md` first, and do not ask a recorded question again. Resume when the earlier runs recorded the same commit, even when the working tree has uncommitted changes such as a specification being written, or when the commits differ only by changes outside the library's code. Otherwise ask the developer whether to resume or start over; in report mode, move it to `.spec-work-<old commit>/` and start over.
+
+Each skill names the working files it reads on resume. A skill that judges the specification without the implementation reads `findings.md` and `decisions.md` only, and leaves `trace.md` and the code locations in earlier evidence unread.

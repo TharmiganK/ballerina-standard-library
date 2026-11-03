@@ -21,7 +21,7 @@ Work **interactively** when a developer is present, and in **report mode** when 
 
 ### 1. Prepare
 
-Read `spec-guide.md`, fetch the guide and read its feature template and writing rules, then read `findings.md`, `verification.md` and the whole specification. Create `.spec-work/` as `findings.md` describes, or resume from it and continue the `F<n>` numbering. Questions an earlier review marked **needs implementation check** are input to step 4.
+Read `spec-guide.md`, fetch the guide and read its feature template and writing rules, then read `findings.md`, `verification.md` and the whole specification. Create `.spec-work/` as `findings.md` describes, or resume from it and continue the `F<n>` numbering. Questions and conformance edits that an earlier review marked **needs implementation check** (in `.spec-work/findings.md` and `.spec-work/review.md`) are input to step 4: settle each one from the code, and record the answer or the missing value.
 
 Done when `.spec-work/inventory.md` records the library, version, commit and mode, and you know which released version the checks run against.
 
