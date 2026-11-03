@@ -21,13 +21,15 @@ Work **interactively** when a developer is present, and in **report mode** when 
 
 ### 1. Prepare
 
-Read `spec-guide.md`, fetch the guide and read its feature template and writing rules, then read `findings.md`, `verification.md` and the whole specification. Create `.spec-work/` as `findings.md` describes, or resume from it and continue the `F<n>` numbering. Questions and conformance edits that an earlier review marked **needs implementation check** (in `.spec-work/findings.md` and `.spec-work/review.md`) are input to step 4: settle each one from the code, and record the answer or the missing value.
+Read `spec-guide.md`, fetch the guide and read its feature template and writing rules, then read `findings.md`, `verification.md` and the whole specification. Create `.spec-work/` as `findings.md` describes, or resume from it: read `findings.md`, `decisions.md`, `trace.md`, `claims.md` and `review.md` when present, and continue the `F<n>` numbering. A claim that an earlier run verified at the same commit counts as conforms (verified), citing that run, unless its code paths changed. Questions and conformance edits that an earlier review marked **needs implementation check** are input to step 4: settle each one from the code, and record the answer as `findings.md` describes.
 
 Done when `.spec-work/inventory.md` records the library, version, commit and mode, and you know which released version the checks run against.
 
 ### 2. Divide into units
 
 A **unit** is a feature area that can be verified on its own: one or more specification sections, the code paths that implement them (Ballerina, native and compiler plugin), and the test packages or files that exercise them. Record the units in `.spec-work/units.md`. When the repository already has a catalogue of feature areas, such as a scanner's scope file, reuse its division.
+
+The introduction, overview, terminology and references form a front-matter unit of their own.
 
 Done when every section of the specification belongs to exactly one unit, and every unit names its code paths.
 
@@ -42,6 +44,8 @@ For each unit, list every checkable **claim** in `.spec-work/claims.md`, each wi
 - every outcome an example states;
 - every _unspecified_ or _implementation-defined_ marker, as a claim that the specification deliberately leaves it open.
 
+An error or diagnostic row that restates a numbered rule shares that rule's claim. Listing and checking (step 4) can run as one pass per unit over `claims.md`.
+
 Done when every rule, table row and example of the specification has at least one claim.
 
 ### 4. Check each claim
@@ -54,11 +58,14 @@ Check the claims unit by unit. Trace each claim to the code that implements it, 
 | **conforms (read)** | The code implements the specified behaviour; not run, with the reason. |
 | **deviates** | The implementation does something else. Record the observed behaviour. |
 | **ambiguous** | The claim can be read in more than one way, and the implementation matches only some readings. |
+| **open** | An _unspecified_ or _implementation-defined_ marker: record whether the code fixes the behaviour anyway, and how. |
 | **untestable** | Neither reading nor running can settle it in this session; say what would. |
 
-Resolve each deviation into a finding, using the evidence of intent in this order: the API docs, the tests, the standards the library implements, the behaviour of sibling features, the changelog and design proposals.
+A claim that conforms on one path and deviates on another, such as at a boundary, deviates; record the path.
 
-- The evidence says the implementation is wrong: a **bug**. Write a reproducer that asserts the specified behaviour, and confirm it fails. If it does not fail, the claim conforms after all: re-read the specification and the code.
+Resolve each deviation into a finding, using the evidence of intent in this order: the API docs, the tests, the standards the library implements, the behaviour of sibling features, the changelog and design proposals. When the specification was written from the code, a deviating claim whose trace entry was only read is presumptively a **doc** finding: the earlier inference was wrong, not the code.
+
+- The evidence says the implementation is wrong: a **bug**. Write a reproducer that asserts the specified behaviour, as `verification.md` describes, and confirm it fails. If it does not fail, the claim conforms after all: re-read the specification and the code.
 - The evidence says the specification is wrong: a **doc** finding, with the corrected specification text.
 - The evidence is silent or split: a **question**, with the specification text and the observed behaviour as the options.
 
@@ -66,11 +73,13 @@ Resolve each ambiguous claim into a **question** with the readings as options, u
 
 For a large specification, dispatch one subagent per unit, in report mode, each with the paths of the references, its unit, its claims, a distinct port range, and the expected output: the claims with outcomes, and its findings. Then merge, renumbering findings into the single `F<n>` sequence. A small specification is faster in one context.
 
-Done when every claim has an outcome, every deviation is resolved into a finding, and every bug has a failing reproducer or states why none could be built.
+Compile every example of the specification and assert the outcomes they state, as `verification.md` describes; an example that fails is a deviation like any other claim.
+
+Done when every claim has an outcome, every deviation is resolved into a finding, every example builds or has a finding, and every bug has a failing reproducer or states why none could be built.
 
 ### 5. Find what the specification does not cover
 
-Walk each unit's code in the other direction, from the implementation to the specification:
+Walk each unit's code in the other direction, from the implementation to the specification. Start from the questions an earlier review raised about completeness, concurrency and lifecycle, which point at the places the specification is silent:
 
 - every public symbol, configuration field, error type and diagnostic code of the unit;
 - every failure branch, and every place a value is clamped, defaulted, ignored or converted;
@@ -78,7 +87,7 @@ Walk each unit's code in the other direction, from the implementation to the spe
 
 Each one the specification does not state, and does not deliberately leave open, is a **gap**: record a **doc** finding with the proposed specification text, or a **question** when the behaviour looks accidental and should not become part of the contract without a decision.
 
-Done when every public symbol, error type and diagnostic code of every unit is either referenced by the specification or recorded as a gap.
+Done when every public symbol, error type and diagnostic code of every unit is either referenced by the specification or recorded as a gap, and for every unit each probe category of `verification.md` (boundaries, returned error versus panic, shared state, lifecycles, conversions, delegated platform behaviour) is recorded as run, read or not applicable.
 
 ### 6. Present
 

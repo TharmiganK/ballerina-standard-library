@@ -24,7 +24,14 @@ Every finding carries its evidence, and the evidence states how it was establish
 
 Verify every bug, and every finding that involves runtime behaviour, when the toolchain allows it. Reading code gets precedence, conversions, shared state and framing wrong often enough that a read-only bug is not reported as a bug without saying so.
 
-Before presenting findings, check each one against the existing issues with a read-only search of `ballerina-platform/ballerina-library`, the tracker of most libraries, across all its issues (issues filed by people often lack the module label), and of the library's own repository when it has issues enabled. Mark a finding that is already reported with the issue link instead of presenting it as new.
+Before presenting findings, check each one against the existing issues with a read-only search of `ballerina-platform/ballerina-library`, the tracker of most libraries, across all its issues (issues filed by people often lack the module label), and of the library's own repository when it has issues enabled. Search with two or three sets of key terms per finding:
+
+```sh
+gh search issues '<terms>' --repo ballerina-platform/ballerina-library --state all --json number,title,state,url
+gh api repos/ballerina-platform/<module-repo> --jq .has_issues   # search the module repository only when true
+```
+
+`gh search issues` takes `--repo`; the short `-R` form returns no results. Mark a finding that is already reported with the issue link instead of presenting it as new.
 
 When a concern is already covered by an earlier finding in `.spec-work/findings.md`, cite that finding instead of recording a new one; record a new finding only for a different aspect.
 
@@ -49,7 +56,7 @@ The specification is the contract. It states what users may rely on, so:
 | Finding | Specification text | Recorded as |
 |---|---|---|
 | **bug** whose intended behaviour is determined by the API docs, tests, a standard or a sibling feature | States the **intended** behaviour. The bug is listed for the developer. | bug |
-| **bug** whose fix is a design choice (several plausible intended behaviours) | States the **current** behaviour until the developer chooses the fix. The choice is asked as a question. | bug and question |
+| **bug** whose fix is a design choice (several plausible intended behaviours) | States the property every plausible fix shares (for example, "returns an `Error`", "does not panic or hang") and marks the rest **_unspecified_** until the developer chooses the fix. The choice is asked as a question. A panic or a hang is never stated as specified behaviour. | bug and question |
 | **question**, before an answer | States the **current** behaviour, so the document stays truthful while the question is open. | question |
 | **question** with security impact (authentication, authorization, TLS, resource limits and exhaustion, input validation, canonicalisation and normalisation), before an answer | Marks the behaviour **_unspecified_**, so the specification does not promise an insecure behaviour. Security considerations state the risk and the configuration that avoids it, as facts. | question |
 | **question** about a non-contractual detail, such as error message text beyond a stable prefix | Marks the detail **_unspecified_** or **_implementation-defined_**. | question |
@@ -105,11 +112,11 @@ Skills omit the sections that do not apply to them, and may add their own.
 
 Keep working state in `.spec-work/` at the repository root so that an interrupted run can resume:
 
-- `inventory.md` starts with one line per run: the skill, the library, the version in `ballerina/Ballerina.toml`, the commit, whether the working tree has uncommitted changes, the released version the run verified against, and the mode.
+- `inventory.md` starts with one line per run, in this form: `- <date> <skill> <mode>: version <Ballerina.toml version>, commit <sha>, uncommitted changes <yes|no>, verified against <released version>`.
 - `findings.md`: every finding, numbered `F1`, `F2`, … in discovery order, never renumbered.
 - `decisions.md`: each answer as `F<n>: <decision> — <developer's words>`, with the date; in report mode, `F<n>: default — <policy row applied>`.
 - Skill-specific files, named in each skill.
 
 Add `.spec-work/` to `.git/info/exclude`, which ignores it locally without changing the repository. On resume, read `findings.md` and `decisions.md` first, and do not ask a recorded question again. Resume when the earlier runs recorded the same commit, even when the working tree has uncommitted changes such as a specification being written, or when the commits differ only by changes outside the library's code. Otherwise ask the developer whether to resume or start over; in report mode, move it to `.spec-work-<old commit>/` and start over.
 
-Each skill names the working files it reads on resume. A skill that judges the specification without the implementation reads `findings.md` and `decisions.md` only, and leaves `trace.md` and the code locations in earlier evidence unread.
+Each skill names the working files it reads on resume. Answers to items an earlier run marked **needs implementation check** are recorded under the finding in `findings.md`, or under the edit in `review.md`, that they belong to. A skill that judges the specification without the implementation reads `findings.md` and `decisions.md` only, and leaves `trace.md` and the code locations in earlier evidence unread.

@@ -43,7 +43,7 @@ For libraries that open listeners:
 
 - Prefer one program: in `main`, attach the service and start the listener explicitly (`check ep.attach(svc); check ep.'start();`), then make the client calls, and stop the listener at the end. Module-level listeners only start after `main` returns, so a module-level service cannot be called from `main` in the same program.
 - When the library has no programmatic start, run the service jar in the background and drive it from a second process: `curl` for HTTP, `nc` or a short Python script for raw sockets, or the same jar in client mode guarded by a configurable (`configurable boolean clientMode = false;` with `-CclientMode=true`). The client-mode process also tries to bind the listener after `main` returns, fails with "Address already in use", and may not exit; stop it with `pkill -9 -f <name>.jar`.
-- Declare one listener per port. Give each scratch package its own port range, so parallel runs do not collide.
+- Declare one listener per port. Give each scratch package its own port range, so parallel runs do not collide. To re-run an earlier run's reproducer under a different port range, copy it and change the ports in the copy.
 - Wait for readiness by polling rather than sleeping a fixed time. A readiness probe is itself a connection: it triggers connection callbacks and counts in connection-level state, so account for it, or probe after the counters are read.
 - Observe the exact output. For HTTP, `curl -s -i`, dropping volatile headers such as `date` and `server`; for raw bytes and line endings, `od -c`.
 - Stop every background process and container when done.
@@ -51,6 +51,8 @@ For libraries that open listeners:
 ## Recording the result
 
 Copy the exact input and the relevant part of the output into the finding or the trace. A claim is verified only when the observed output matches what the claim states. When it does not, the claim is wrong, not the run: fix the claim, and re-read the code to understand why.
+
+A bug's reproducer asserts the specified behaviour and reports PASS or FAIL per check, so one package can reproduce several bugs. For a hang, assert completion within a bound, and stop the process when the bound passes. For a compile-time bug, the reproducer is a package whose build reports the wrong diagnostic, or fails to report the right one.
 
 When the repository has a fast, targeted test runner, a bug's reproducer can also be proposed as a test in the finding, so that it can become the regression test of the fix. Proposing it is part of the finding; adding it to the repository is the developer's decision.
 
