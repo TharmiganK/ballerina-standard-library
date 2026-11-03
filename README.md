@@ -20,21 +20,27 @@ Shared material lives in [`references/`](references): where the guide is, the fi
 
 You need [Claude Code](https://docs.claude.com/en/docs/claude-code), the Ballerina distribution your library targets (`bal`), and the GitHub CLI (`gh`, logged in).
 
-Add the marketplace from the `bal-lib-skills` branch, then install the plugin:
+1. Clone the `bal-lib-skills` branch to a permanent location:
 
-```sh
-claude plugin marketplace add 'https://github.com/TharmiganK/ballerina-standard-library.git#bal-lib-skills'
-claude plugin install bal-lib-skills@bal-lib
-```
+   ```sh
+   git clone -b bal-lib-skills https://github.com/TharmiganK/ballerina-standard-library.git ~/bal-lib-skills
+   ```
 
-The same commands work inside a Claude Code session as `/plugin marketplace add …` and `/plugin install …`. To get later changes, run `claude plugin marketplace update bal-lib`.
+2. Start Claude Code with the skills loaded, from your library's repository:
 
-To try a local copy instead, clone the branch and start Claude Code with it:
+   ```sh
+   claude --plugin-dir ~/bal-lib-skills
+   ```
 
-```sh
-git clone -b bal-lib-skills https://github.com/TharmiganK/ballerina-standard-library.git bal-lib-skills
-claude --plugin-dir ./bal-lib-skills
-```
+   To avoid typing the flag every time, add an alias to your shell profile (`~/.zshrc` or `~/.bashrc`):
+
+   ```sh
+   alias claude-bal='claude --plugin-dir ~/bal-lib-skills'
+   ```
+
+3. To get later changes, pull the branch: `git -C ~/bal-lib-skills pull`.
+
+Keep the clone as it is: the skills read the shared `references/` directory next to them, so copying individual skill folders elsewhere breaks them.
 
 ## Run
 
