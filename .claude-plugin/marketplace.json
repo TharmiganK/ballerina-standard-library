@@ -1,0 +1,16 @@
+{
+  "name": "bal-lib",
+  "owner": {
+    "name": "Ballerina Library Team"
+  },
+  "metadata": {
+    "description": "Skills for Ballerina library developers."
+  },
+  "plugins": [
+    {
+      "name": "bal-lib-skills",
+      "source": "./",
+      "description": "Write, review and verify Ballerina library specifications against the implementation, and analyse gaps against standards and established libraries."
+    }
+  ]
+}
