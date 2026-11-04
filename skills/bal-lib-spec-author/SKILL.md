@@ -43,7 +43,7 @@ Record each absent source explicitly (for example, "no compiler plugin", "no con
 
 Group the surface into features, ordered as a user meets them: for a networking library, listener, service, dispatching, binding, responses, client, security; for a function library, the inputs shared by the functions, then each operation, then errors. In rewrite mode, also extract every normative statement of the old specification into `.spec-work/old-claims.md`, one line each, with its old section.
 
-Done when every public symbol, configurable and diagnostic code is assigned to a feature, or listed as excluded with the reason (internal, deprecated, test-only).
+Done when every public symbol, configurable and diagnostic code is assigned to a feature, or listed as excluded with the reason (internal, test-only). Deprecated symbols still work, so they are assigned to a feature like the others and marked deprecated, with the version and the replacement.
 
 **Checkpoint 1 (interactive).** Show the feature outline with one line per feature, and ask the developer to confirm or reshape it before rules are derived. The outline is cheap to change now and expensive later.
 
@@ -81,6 +81,9 @@ Write `docs/spec/spec.md` following the guide's structure and writing rules. In 
 
 - Treat each finding as the policy table in `findings.md` says.
 - Add an example wherever a rule is hard to follow on its own: the overall usage of a feature, precedence and matching, binding, computed values, wire formats, boundary inputs, and interactions. Each example states its outcome and the rules it illustrates. An example may show intended behaviour that the current release lacks because of a recorded bug; cite the finding in the trace.
+- Give an example that has its own heading a numbered leaf heading named `Example: <topic>`, one level below the section it illustrates, as the guide describes; an inline example introduced by "For example, ..." needs none. Every heading must be unique.
+- Mark each deprecated feature with a `> **Deprecated:** since <version>. Use <replacement>.` note, and each deprecated configuration field with `Deprecated since <version>. Use <replacement>.` at the start of its meaning; take the version from the changelog. Its rules stay normative.
+- Use notes only for consequences, rationale and pointers, never for rules or advice.
 - Collect the security-relevant behaviour and defaults into the security considerations section, stating each risk and the configuration that avoids it as facts.
 - Take _Owners_ from `CODEOWNERS` or the repository's maintainers, set _Created_ and _Updated_ to today, and leave _Reviewers_ for the owners to fill, flagged in the hand-over.
 - In rewrite mode, move removed content to its destination in the same change, such as static code rule explanations to their own document, or confirm that it already exists there, and list what moved where.

@@ -51,8 +51,9 @@ Apply each rule of the guide to each section, and record a **conformance edit** 
 - **Normative language**: key words in capitals only where an obligation or permission needs emphasis; rules in the present tense; open behaviour marked _unspecified_ or _implementation-defined_, never left vague ("a sensible default", "may vary", "usually").
 - **Content**: no copied signatures or doc comments, no tutorials or recommendations, no implementation detail (internal classes, functions, data structures).
 - **Examples**: each one recognisable as informative, minimal, naming the rules it illustrates, and stating an outcome its code can produce. An example whose code cannot produce its stated outcome is an edit. An example whose stated outcome follows from its code but contradicts a rule is a design question (step 4).
-- **Terminology**: defined terms used consistently, without synonyms; every term with a specific meaning defined.
-- **Markdown**: links resolve to existing anchors, code fences balanced and labelled with a language, paragraphs not hard-wrapped.
+- **Terminology**: one term for one meaning: defined terms used without synonyms, no term used for two meanings, and every term with a specific meaning defined.
+- **Notes and deprecation**: every `> **Note:**` informative only (a consequence, rationale or pointer), with no rule, advice or security warning in it; every deprecated feature and field marked with its version and replacement, and still specified.
+- **Markdown**: every heading unique; example headings numbered, named `Example: <topic>`, one level below their section, leaves, and absent from the contents; links resolve to existing anchors; code fences balanced and labelled with a language; paragraphs not hard-wrapped. When reviewing a change to an existing specification, sections renumbered without need are an edit: new sections go after the existing ones of their parent.
 
 Done when every guide rule has been applied to every section. Record the clean combinations too, as a compact matrix, so that "no edits" is a result rather than an omission.
 
