@@ -82,6 +82,7 @@ Write `docs/spec/spec.md` following the guide's structure and writing rules. In 
 - Treat each finding as the policy table in `findings.md` says.
 - Add an example wherever a rule is hard to follow on its own: the overall usage of a feature, precedence and matching, binding, computed values, wire formats, boundary inputs, and interactions. Each example states its outcome and the rules it illustrates. An example may show intended behaviour that the current release lacks because of a recorded bug; cite the finding in the trace.
 - Give an example that has its own heading a numbered leaf heading named `Example: <topic>`, one level below the section it illustrates, as the guide describes; an inline example introduced by "For example, ..." needs none. Every heading must be unique.
+- Write the contents as the guide describes: every heading after the introduction in document order except examples, `References` included, as `- [<heading text>](#<anchor>)` items indented four spaces per level.
 - Mark each deprecated feature with a `> **Deprecated:** since <version>. Use <replacement>.` note, and each deprecated configuration field with `Deprecated since <version>. Use <replacement>.` at the start of its meaning; take the version from the changelog. Its rules stay normative.
 - Use notes only for consequences, rationale and pointers, never for rules or advice.
 - Collect the security-relevant behaviour and defaults into the security considerations section, stating each risk and the configuration that avoids it as facts.
@@ -92,7 +93,7 @@ Write `docs/spec/spec.md` following the guide's structure and writing rules. In 
 ### 6. Check the document
 
 - Compile every example in the specification, `README.md` and the API docs, and assert the outcomes the specification's examples state, as `verification.md` describes.
-- Resolve every internal link to an existing heading anchor, and check that code fences are balanced.
+- Resolve every internal link to an existing heading anchor, check that code fences are balanced, and check that the contents list exactly the headings after the introduction, except examples, with their text and level.
 - Apply the reviewer checklist of the guide's change process to the whole document.
 
 Done when the examples build without errors, every stated outcome holds or cites a recorded bug, no link is broken, and every checklist item holds.
